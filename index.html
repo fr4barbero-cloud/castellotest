@@ -1,0 +1,669 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <title>Test interattivo - Il castello medievale</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --bg:#fff8ef;
+      --panel:#fffdf9;
+      --ink:#2d2419;
+      --muted:#6f6255;
+      --line:#e6d7bf;
+      --accent:#8a6fd1;
+      --accent-soft:#efe9ff;
+      --title-soft:#fff3cd;
+      --ok:#1f9d61;
+      --ok-soft:#e6f7ee;
+      --bad:#c94a4a;
+      --bad-soft:#fdeaea;
+      --shadow:0 10px 24px rgba(0,0,0,.08);
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    html, body{
+      width:100%;
+      max-width:100%;
+      overflow-x:hidden;
+      -webkit-text-size-adjust:100%;
+    }
+    body{
+      margin:0;
+      font-family:'Atkinson Hyperlegible',system-ui,sans-serif;
+      color:var(--ink);
+      background:radial-gradient(circle at top,#fffdf8 0%,#fbf1df 40%,#f6ead8 100%);
+    }
+    img{max-width:100%;height:auto;display:block}
+    .app{
+      width:min(1200px, 100%);
+      max-width:1200px;
+      margin:0 auto;
+      padding:clamp(8px, 2vw, 14px);
+      padding-bottom:calc(72px + env(safe-area-inset-bottom));
+    }
+    .topbar{
+      background:linear-gradient(180deg,#fffdf9,#fff4e4);
+      border:2px solid var(--line);
+      border-radius:24px;
+      box-shadow:var(--shadow);
+      padding:clamp(12px, 2vw, 16px);
+      margin-bottom:14px;
+    }
+    h1{margin:0 0 8px;text-align:center;font-size:clamp(1.35rem,2vw,2.1rem);color:#3b2b1d}
+    .intro{margin:0;text-align:center;line-height:1.45;color:var(--muted);font-size:1rem}
+
+    .page{display:none}
+    .page.active{display:block}
+
+    .layout{
+      display:grid;
+      grid-template-columns:minmax(0,1.35fr) minmax(300px,.8fr);
+      gap:clamp(12px, 2vw, 18px);
+      align-items:start;
+    }
+    .board,.bank{
+      background:linear-gradient(180deg,#fffefa,#fff9f0);
+      border:2px solid var(--line);
+      border-radius:24px;
+      box-shadow:var(--shadow);
+      padding:14px;
+      min-width:0;
+    }
+
+    .rows{
+      display:grid;
+      grid-template-columns:repeat(3,minmax(0,1fr));
+      gap:clamp(12px, 1.8vw, 16px);
+    }
+    .row{
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      background:var(--panel);
+      border:2px solid #ead9bc;
+      border-radius:18px;
+      padding:12px;
+      transition:border-color .2s ease, box-shadow .2s ease, background .2s ease;
+      min-width:0;
+    }
+    .row.correct{border-color:var(--ok);background:var(--ok-soft);box-shadow:0 8px 18px rgba(31,157,97,.12)}
+    .row.incorrect{border-color:var(--bad);background:var(--bad-soft);box-shadow:0 8px 18px rgba(201,74,74,.10)}
+
+    .pic{
+      width:100%;
+      max-width:240px;
+      aspect-ratio:4/5;
+      border-radius:14px;
+      overflow:hidden;
+      border:2px solid #ead9bc;
+      background:#f6efe4;
+      margin:0 auto;
+    }
+    .pic img{width:100%;height:100%;object-fit:cover;object-position:center}
+
+    .answer-boxes{display:grid;grid-template-columns:1fr;gap:10px;width:100%}
+    .dropzone{
+      min-height:48px;
+      border:2px dashed #ccb998;
+      border-radius:14px;
+      background:#fff;
+      padding:6px;
+      display:flex;
+      align-items:center;
+      gap:8px;
+      flex-wrap:wrap;
+      width:100%;
+      min-width:0;
+    }
+    .dropzone.selected-place{background:var(--accent-soft);border-color:var(--accent)}
+    .dropzone.selected-desc{background:var(--title-soft);border-color:#e0b84c}
+    .dropzone.correct{border-style:solid;border-color:var(--ok);background:var(--ok-soft)}
+    .dropzone.incorrect{border-style:solid;border-color:var(--bad);background:var(--bad-soft)}
+    .dropzone-label{width:100%;font-weight:700;color:#4a3928;font-size:.92rem;margin-bottom:2px}
+    .placeholder{color:#8a7d6b;font-size:.85rem}
+
+    .token{
+      border:none;
+      border-radius:999px;
+      padding:9px 12px;
+      font:inherit;
+      font-weight:700;
+      cursor:pointer;
+      box-shadow:0 4px 10px rgba(0,0,0,.08);
+      line-height:1.2;
+      text-align:left;
+      max-width:100%;
+      white-space:normal;
+      overflow-wrap:anywhere;
+    }
+    .token.place{background:linear-gradient(180deg,#efe9ff,#ddd0ff);color:#4d3f7c}
+    .token.desc{background:linear-gradient(180deg,#fff1cf,#f4dfaa);color:#624a17}
+    .token.used{opacity:.45}
+
+    .bank-title{font-size:1.02rem;font-weight:700;color:#3b2b1d;margin-bottom:10px}
+    .bank-group + .bank-group{margin-top:14px;padding-top:14px;border-top:2px solid #efe3cf}
+    .bank-list{display:flex;flex-direction:column;gap:8px}
+
+    .controls{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:10px;
+      flex-wrap:wrap;
+      margin-top:14px;
+    }
+    .feedback{min-height:24px;font-weight:700;color:#4a3928}
+    .feedback.ok{color:var(--ok)}
+    .feedback.bad{color:var(--bad)}
+    .buttons{display:flex;gap:10px;flex-wrap:wrap}
+    button.action{
+      border:none;
+      border-radius:14px;
+      padding:12px 16px;
+      font:inherit;
+      font-weight:700;
+      cursor:pointer;
+      box-shadow:0 8px 18px rgba(0,0,0,.08);
+      background:#ffffff;
+      border:2px solid #e6d7bf;
+      color:#4a3928;
+      min-height:46px;
+    }
+    button.action.active,
+    button.action:active{background:#fff3cd;border-color:#e0b84c}
+    #nextPage,#prevPage{border-color:#e0b84c}
+
+    .bottom-bar{
+      position:fixed;
+      bottom:0;
+      left:0;
+      width:100%;
+      background:rgba(255,255,255,.96);
+      backdrop-filter:blur(6px);
+      border-top:2px solid #e6d7bf;
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      padding:10px 16px calc(10px + env(safe-area-inset-bottom));
+      font-weight:700;
+      z-index:1000;
+      gap:10px;
+    }
+
+    canvas#confetti{
+      position:fixed;inset:0;width:100%;height:100%;
+      pointer-events:none;z-index:9999;
+    }
+
+    @media (max-width: 1100px){
+      .layout{grid-template-columns:1fr}
+      .bank{order:2}
+      .board{order:1}
+      .bank-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+    }
+    @media (max-width: 900px){
+      .rows{grid-template-columns:repeat(2,minmax(0,1fr))}
+      .pic{max-width:230px}
+    }
+    @media (max-width: 700px){
+      .app{padding-left:10px;padding-right:10px}
+      .rows{grid-template-columns:1fr}
+      .row{padding:10px}
+      .pic{max-width:220px;width:min(220px,100%)}
+      .controls{flex-direction:column;align-items:stretch}
+      .buttons{width:100%;order:1}
+      .feedback{order:2}
+      .buttons .action{flex:1 1 calc(50% - 8px)}
+      .bank-list{grid-template-columns:1fr}
+    }
+    @media (max-width: 480px){
+      .topbar{border-radius:18px}
+      h1{font-size:1.2rem}
+      .intro{font-size:.92rem}
+      .board,.bank{padding:10px;border-radius:18px}
+      .row{border-radius:16px}
+      .dropzone{min-height:52px}
+      .dropzone-label{font-size:.88rem}
+      .placeholder{font-size:.84rem}
+      .token{font-size:.9rem;padding:8px 10px}
+      .buttons{flex-direction:column}
+      .buttons .action{width:100%}
+      .bottom-bar{flex-direction:column;align-items:flex-start;font-size:.95rem}
+    }
+    @media (max-width: 360px){
+      .app{padding-left:8px;padding-right:8px}
+      .topbar,.board,.bank{padding:8px}
+      .buttons .action{padding:10px 12px}
+    }
+  </style>
+</head>
+<body>
+<canvas id="confetti"></canvas>
+
+<div class="app">
+  <section class="topbar">
+    <h1>Il castello medievale</h1>
+    <p class="intro">
+      Guarda l'immagine. Seleziona prima lo spazio vuoto e poi scegli il cartellino corretto. Devi abbinare a ogni ambiente il nome giusto e la sua funzione.
+    </p>
+  </section>
+
+  <section class="page active" id="page1">
+    <div class="layout">
+      <section class="board">
+        <div class="rows" id="rows1"></div>
+        <div class="controls">
+          <div class="feedback" id="feedback1"></div>
+          <div class="buttons">
+            <button class="action" type="button" id="clear1">Annulla selezione</button>
+            <button class="action" type="button" id="reset1">Reset pagina 1</button>
+            <button class="action" type="button" id="check1">Verifica</button>
+            <button class="action" type="button" id="nextPage">Pagina 2</button>
+          </div>
+        </div>
+      </section>
+      <aside class="bank">
+        <div class="bank-group">
+          <div class="bank-title">Luoghi del castello</div>
+          <div class="bank-list" id="placesBank1"></div>
+        </div>
+        <div class="bank-group">
+          <div class="bank-title">Funzioni</div>
+          <div class="bank-list" id="descsBank1"></div>
+        </div>
+      </aside>
+    </div>
+  </section>
+
+  <section class="page" id="page2">
+    <div class="layout">
+      <section class="board">
+        <div class="rows" id="rows2"></div>
+        <div class="controls">
+          <div class="feedback" id="feedback2"></div>
+          <div class="buttons">
+            <button class="action" type="button" id="prevPage">Pagina 1</button>
+            <button class="action" type="button" id="clear2">Annulla selezione</button>
+            <button class="action" type="button" id="reset2">Reset pagina 2</button>
+            <button class="action" type="button" id="check2">Verifica</button>
+          </div>
+        </div>
+      </section>
+      <aside class="bank">
+        <div class="bank-group">
+          <div class="bank-title">Luoghi del castello</div>
+          <div class="bank-list" id="placesBank2"></div>
+        </div>
+        <div class="bank-group">
+          <div class="bank-title">Funzioni</div>
+          <div class="bank-list" id="descsBank2"></div>
+        </div>
+      </aside>
+    </div>
+  </section>
+</div>
+
+<script>
+const dataPages = {
+  page1: [
+    {
+      place:"SALA GRANDE",
+      desc:"Qui si svolgono banchetti, feste, incontri politici e ricevimenti con ospiti e cavalieri.",
+      image:"salagrande.png",
+      alt:"Sala grande del castello con tavoli e persone"
+    },
+    {
+      place:"CAPPELLA E ARCHIVI",
+      desc:"Qui si prega e si conservano contratti, accordi e altri documenti importanti.",
+      image:"Cappella.png",
+      alt:"Cappella del castello con persone all'interno"
+    },
+    {
+      place:"CORTILE",
+      desc:"Spazio aperto con pozzo, stalle e lavoro quotidiano; in guerra accoglie anche i contadini.",
+      image:"Cortile.png",
+      alt:"Cortile del castello con animali e persone al lavoro"
+    }
+  ],
+  page2: [
+    {
+      place:"MAGAZZINI",
+      desc:"Qui si conservano le scorte di cibo utili soprattutto durante gli assedi.",
+      image:"Magazzino.png",
+      alt:"Magazzini del castello con persone e scorte"
+    },
+    {
+      place:"MASTIO",
+      desc:"È la torre più importante del castello, usata come alloggio del signore e come ultima difesa.",
+      image:"Mastio.png",
+      alt:"Mastio del castello con torre alta e bandiera"
+    },
+    {
+      place:"MURA E DIFESA",
+      desc:"Comprendono fossato, ponte levatoio, camminamento di ronda, merli e feritoie per difendere il castello.",
+      image:"Mura.png",
+      alt:"Mura del castello con ponte levatoio e torri"
+    }
+  ]
+};
+
+let activePage = 'page1';
+let activeZone = null;
+
+function shuffle(arr){
+  const copy = [...arr];
+  for(let i = copy.length - 1; i > 0; i--){
+    const j = Math.floor(Math.random() * (i + 1));
+    [copy[i], copy[j]] = [copy[j], copy[i]];
+  }
+  return copy;
+}
+
+function renderRows(pageId){
+  const container = document.getElementById(pageId === 'page1' ? 'rows1' : 'rows2');
+  container.innerHTML = '';
+  dataPages[pageId].forEach((item) => {
+    const row = document.createElement('article');
+    row.className = 'row';
+    row.dataset.place = item.place;
+    row.dataset.desc = item.desc;
+    row.innerHTML = `
+      <div class="pic"><img src="${item.image}" alt="${item.alt}"></div>
+      <div class="answer-boxes">
+        <div class="dropzone place-zone" data-type="place" data-value="">
+          <div class="dropzone-label">Nome del luogo</div>
+          <div class="placeholder">Seleziona questo spazio e poi scegli il luogo giusto</div>
+        </div>
+        <div class="dropzone desc-zone" data-type="desc" data-value="">
+          <div class="dropzone-label">Funzione del luogo</div>
+          <div class="placeholder">Seleziona questo spazio e poi scegli la descrizione corretta</div>
+        </div>
+      </div>
+    `;
+    container.appendChild(row);
+  });
+
+  container.querySelectorAll('.dropzone').forEach(zone => {
+    zone.addEventListener('click', () => {
+      if(zone.closest('.page')?.id !== activePage) return;
+      document.querySelectorAll(`#${activePage} .dropzone`).forEach(z => z.classList.remove('selected-place','selected-desc'));
+      activeZone = zone;
+      if(zone.dataset.type === 'place'){
+        zone.classList.add('selected-place');
+      }else{
+        zone.classList.add('selected-desc');
+      }
+    });
+  });
+}
+
+function createBankTokens(pageId){
+  const pageData = dataPages[pageId];
+  const places = pageData.map(x => x.place);
+  const descs = pageData.map(x => x.desc);
+  const placeBank = document.getElementById(pageId === 'page1' ? 'placesBank1' : 'placesBank2');
+  const descBank = document.getElementById(pageId === 'page1' ? 'descsBank1' : 'descsBank2');
+  placeBank.innerHTML = '';
+  descBank.innerHTML = '';
+
+  shuffle(places).forEach(value => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'token place';
+    btn.dataset.value = value;
+    btn.dataset.type = 'place';
+    btn.textContent = value;
+    btn.addEventListener('click', () => selectToken(btn, pageId));
+    placeBank.appendChild(btn);
+  });
+
+  shuffle(descs).forEach(value => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'token desc';
+    btn.dataset.value = value;
+    btn.dataset.type = 'desc';
+    btn.textContent = value;
+    btn.addEventListener('click', () => selectToken(btn, pageId));
+    descBank.appendChild(btn);
+  });
+}
+
+function selectToken(btn, pageId){
+  if(activePage !== pageId) return;
+  if(!activeZone) return;
+  if(activeZone.dataset.type !== btn.dataset.type) return;
+  if(btn.classList.contains('used')) return;
+
+  const zone = activeZone;
+  const previousValue = zone.dataset.value;
+  const type = zone.dataset.type;
+
+  if(previousValue){
+    const oldBtn = [...document.querySelectorAll(`#${activePage} .token[data-type="${type}"]`)]
+      .find(b => b.dataset.value === previousValue);
+    if(oldBtn) oldBtn.classList.remove('used');
+  }
+
+  zone.dataset.value = btn.dataset.value;
+  const existing = zone.querySelector('.token');
+  if(existing) existing.remove();
+  const placeholder = zone.querySelector('.placeholder');
+  if(placeholder) placeholder.remove();
+
+  const placed = document.createElement('button');
+  placed.type = 'button';
+  placed.className = `token ${type}`;
+  placed.textContent = btn.dataset.value;
+  placed.addEventListener('click', (e) => {
+    e.stopPropagation();
+    restoreZone(zone, activePage);
+  });
+  zone.appendChild(placed);
+
+  btn.classList.add('used');
+  zone.classList.remove('selected-place','selected-desc');
+  activeZone = null;
+  updateScore();
+}
+
+function restoreZone(zone, pageId){
+  const value = zone.dataset.value;
+  if(!value) return;
+  const type = zone.dataset.type;
+  const bankBtn = [...document.querySelectorAll(`#${pageId} .token[data-type="${type}"]`)]
+    .find(btn => btn.dataset.value === value);
+  if(bankBtn) bankBtn.classList.remove('used');
+
+  zone.dataset.value = '';
+  const placed = zone.querySelector('.token');
+  if(placed) placed.remove();
+  const placeholder = document.createElement('div');
+  placeholder.className = 'placeholder';
+  placeholder.textContent = type === 'place'
+    ? 'Seleziona questo spazio e poi scegli il luogo giusto'
+    : 'Seleziona questo spazio e poi scegli la descrizione corretta';
+  zone.appendChild(placeholder);
+  zone.classList.remove('correct','incorrect','selected-place','selected-desc');
+  updateScore();
+}
+
+function clearSelection(){
+  activeZone = null;
+  document.querySelectorAll(`#${activePage} .dropzone`).forEach(z => z.classList.remove('selected-place','selected-desc'));
+}
+
+function checkPage(pageId){
+  const page = document.getElementById(pageId);
+  const rows = page.querySelectorAll('.row');
+  const feedback = document.getElementById(pageId === 'page1' ? 'feedback1' : 'feedback2');
+  let allFilled = true;
+  let totalCorrect = 0;
+
+  rows.forEach(row => {
+    row.classList.remove('correct','incorrect');
+    const placeZone = row.querySelector('.place-zone');
+    const descZone = row.querySelector('.desc-zone');
+    [placeZone, descZone].forEach(z => z.classList.remove('correct','incorrect'));
+
+    if(!placeZone.dataset.value || !descZone.dataset.value){
+      allFilled = false;
+      return;
+    }
+
+    const placeOk = placeZone.dataset.value === row.dataset.place;
+    const descOk = descZone.dataset.value === row.dataset.desc;
+    if(placeOk){ placeZone.classList.add('correct'); } else { placeZone.classList.add('incorrect'); }
+    if(descOk){ descZone.classList.add('correct'); } else { descZone.classList.add('incorrect'); }
+
+    if(placeOk && descOk){
+      row.classList.add('correct');
+      totalCorrect++;
+    }else{
+      row.classList.add('incorrect');
+    }
+  });
+
+  feedback.classList.remove('ok','bad');
+
+  if(!allFilled){
+    feedback.textContent = 'Completa prima tutti gli spazi vuoti.';
+    feedback.classList.add('bad');
+  }else if(totalCorrect === 3){
+    feedback.textContent = 'Perfetto: in questa pagina è tutto corretto.';
+    feedback.classList.add('ok');
+  }else{
+    feedback.textContent = 'Controlla gli abbinamenti evidenziati in rosso e in verde.';
+    feedback.classList.add('bad');
+  }
+
+  updateScore();
+  if(getGlobalCorrectCount() === 6){
+    launchConfetti();
+  }
+}
+
+function getGlobalCorrectCount(){
+  let n = 0;
+  document.querySelectorAll('.page .row').forEach(row => {
+    const placeZone = row.querySelector('.place-zone');
+    const descZone = row.querySelector('.desc-zone');
+    if(placeZone.dataset.value === row.dataset.place && descZone.dataset.value === row.dataset.desc){
+      n++;
+    }
+  });
+  return n;
+}
+
+function updateScore(){
+  document.getElementById('scoreBottom').textContent = `Abbinamenti corretti: ${getGlobalCorrectCount()} / 6`;
+}
+
+function resetPage(pageId){
+  renderRows(pageId);
+  createBankTokens(pageId);
+  document.getElementById(pageId === 'page1' ? 'feedback1' : 'feedback2').textContent = '';
+  document.getElementById(pageId === 'page1' ? 'feedback1' : 'feedback2').classList.remove('ok','bad');
+  if(activePage === pageId) clearSelection();
+  updateScore();
+}
+
+function showPage(pageId){
+  activePage = pageId;
+  document.getElementById('page1').classList.toggle('active', pageId === 'page1');
+  document.getElementById('page2').classList.toggle('active', pageId === 'page2');
+  document.getElementById('pageBadgeBottom').textContent = pageId === 'page1' ? 'Pagina 1 di 2' : 'Pagina 2 di 2';
+  clearSelection();
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+
+document.getElementById('nextPage').addEventListener('click', () => showPage('page2'));
+document.getElementById('prevPage').addEventListener('click', () => showPage('page1'));
+document.getElementById('clear1').addEventListener('click', clearSelection);
+document.getElementById('clear2').addEventListener('click', clearSelection);
+document.getElementById('check1').addEventListener('click', () => checkPage('page1'));
+document.getElementById('check2').addEventListener('click', () => checkPage('page2'));
+document.getElementById('reset1').addEventListener('click', () => resetPage('page1'));
+document.getElementById('reset2').addEventListener('click', () => resetPage('page2'));
+
+const canvas = document.getElementById('confetti');
+const ctx = canvas.getContext('2d');
+let particles = [];
+let animationId = null;
+
+function resizeCanvas(){
+  const ratio = window.devicePixelRatio || 1;
+  canvas.width = Math.floor(window.innerWidth * ratio);
+  canvas.height = Math.floor(window.innerHeight * ratio);
+  canvas.style.width = window.innerWidth + 'px';
+  canvas.style.height = window.innerHeight + 'px';
+  ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+}
+resizeCanvas();
+window.addEventListener('resize', resizeCanvas);
+
+function launchConfetti(){
+  particles = [];
+  const colors = ['#8a6fd1','#f2c860','#f06c9b','#66c2a5','#6ea8fe','#ff9f43','#22c55e','#ef4444','#eab308','#a855f7'];
+  for(let i = 0; i < 260; i++){
+    particles.push({
+      x: Math.random() * window.innerWidth,
+      y: -20 - Math.random() * window.innerHeight * 0.5,
+      size: 5 + Math.random() * 8,
+      color: colors[Math.floor(Math.random() * colors.length)],
+      speedY: 2 + Math.random() * 5,
+      speedX: -3 + Math.random() * 6,
+      angle: Math.random() * Math.PI * 2,
+      spin: -0.2 + Math.random() * 0.4
+    });
+  }
+  if(animationId) cancelAnimationFrame(animationId);
+  animateConfetti();
+}
+
+function animateConfetti(){
+  ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+  particles.forEach(p => {
+    p.x += p.speedX;
+    p.y += p.speedY;
+    p.angle += p.spin;
+    ctx.save();
+    ctx.translate(p.x, p.y);
+    ctx.rotate(p.angle);
+    ctx.fillStyle = p.color;
+    ctx.fillRect(-p.size/2, -p.size/2, p.size, p.size*0.7);
+    ctx.restore();
+  });
+  particles = particles.filter(p => p.y < window.innerHeight + 30);
+  if(particles.length){
+    animationId = requestAnimationFrame(animateConfetti);
+  }else{
+    ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+    animationId = null;
+  }
+}
+
+renderRows('page1');
+renderRows('page2');
+createBankTokens('page1');
+createBankTokens('page2');
+updateScore();
+
+document.querySelectorAll('button.action').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('button.action').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+  });
+});
+</script>
+
+<div class="bottom-bar">
+  <div id="pageBadgeBottom">Pagina 1 di 2</div>
+  <div id="scoreBottom">Abbinamenti corretti: 0 / 6</div>
+</div>
+</body>
+</html>
